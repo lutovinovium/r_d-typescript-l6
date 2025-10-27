@@ -1,0 +1,21 @@
+{
+  "name": "lesson-5",
+  "version": "1.0.0",
+  "description": "Homework for lesson 5 of TS course from robot_dreams",
+  "main": "index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "author": "lutovinovium@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  }
+}
