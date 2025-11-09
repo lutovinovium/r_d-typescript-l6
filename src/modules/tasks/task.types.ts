@@ -1,44 +1,34 @@
-import {Priority, Status, WorkItemType} from "./task.constants";
-import {Bug, Epic, Story, Subtask, Task} from "./task.models";
+import {WorkItemType} from "./task.constants";
+import {Epic} from "./models/Epic.model";
+import {Story} from "./models/Story.model";
+import {Task} from "./models/Task.model";
+import {Subtask} from "./models/Subtask.model";
+import {Bug} from "./models/Bug.model";
 
 export type ITaskBase = {
+    type: WorkItemType;
     id: string;
     title: string;
-    type: WorkItemType;
-    createdAt: Date;
-    status: Status;
-    priority: Priority;
     description?: string;
-    deadline?: Date;
-    doneAt?: Date;
+    status: string;
+    priority: string;
+    createdAt: Date | string;
+    deadline?: Date | string;
+    doneAt?: Date | string;
 }
 
 export type WithChildren = {
     children: string[];
 }
 
-export type TaskBaseSerialised = {
-    id: string;
-    type: WorkItemType;
-    title: string;
+export type TaskBaseSerialised = ITaskBase & {
     createdAt: string;
-    status: Status;
-    priority: Priority;
-    description?: string;
-    deadline?: string;
     doneAt?: string;
+    deadline?: string;
 }
 
-export type CreateTaskPayload = {
-    id: string;
-    title: string;
-    createdAt?: Date | string;
-    status?: string;
-    priority?: string;
-    description?: string;
-    deadline?: Date | string;
-    doneAt?: Date | string;
-}
+export type CreateTaskPayload = Omit<ITaskBase, 'type' | 'status' | 'priority' | 'createdAt'> & Partial<Pick<ITaskBase, 'status' | 'priority' | 'createdAt'>>;
+
 export type ErrorWithContext = { entry?: unknown, error: Error };
 export type UpdateTaskPayload = Partial<Omit<CreateTaskPayload, 'id' | 'createdAt'>>;
 export type WorkItem = Epic | Story | Task | Subtask | Bug;

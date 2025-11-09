@@ -1,5 +1,3 @@
-import type {CreateTaskPayload, ITaskBase, TaskBaseSerialised, UpdateTaskPayload, WithChildren} from "./task.types";
-import {Priority, Status, WorkItemType} from "./task.constants";
 import {
     inferToDate,
     isAfter,
@@ -11,11 +9,13 @@ import {
     stringMaxLength,
     stringMinLength,
     withValidation
-} from "./task.decorators";
+} from "../task.decorators";
+import type {CreateTaskPayload, ITaskBase, TaskBaseSerialised, UpdateTaskPayload} from "../task.types";
+import {Priority, Status, WorkItemType} from "../task.constants";
 
 @withValidation
-abstract class TaskBase implements ITaskBase {
-    readonly type: WorkItemType = WorkItemType.TASK;
+export abstract class TaskBase implements ITaskBase {
+    abstract readonly type: WorkItemType;
     readonly id: string;
 
     _title!: string;
@@ -23,44 +23,44 @@ abstract class TaskBase implements ITaskBase {
     @isString
     @stringMinLength(3)
     @stringMaxLength(100)
-    set title(value: unknown) {
-        this._title = value as string;
+    set title(value) {
+        this._title = value;
     }
 
     get title(): string {
         return this._title;
     }
 
-    _createdAt!: Date;
+    _createdAt: Date = new Date();
     @required
     @inferToDate
     @isCorrectDate
     @isInPast
-    set createdAt(value: unknown) {
-        this._createdAt = value as Date;
+    set createdAt(value) {
+        this._createdAt = value;
     }
 
     get createdAt(): Date {
         return this._createdAt;
     }
 
-    _status!: Status;
+    _status: Status = Status.TODO;
     @isPartOfEnum(Status)
-    set status(value: unknown) {
+    set status(value) {
         if (this._doneAt && this._status === Status.DONE && value !== Status.DONE) {
             this._doneAt = undefined;
         }
-        this._status = value as Status;
+        this._status = value;
     }
 
     get status(): Status {
         return this._status;
     }
 
-    _priority!: Priority;
+    _priority: Priority = Priority.MEDIUM;
     @isPartOfEnum(Priority)
-    set priority(value: unknown) {
-        this._priority = value as Priority;
+    set priority(value) {
+        this._priority = value;
     }
 
     get priority(): Priority {
@@ -71,8 +71,8 @@ abstract class TaskBase implements ITaskBase {
     @isString
     @stringMinLength(10)
     @stringMaxLength(200)
-    set description(value: unknown) {
-        this._description = value as string;
+    set description(value) {
+        this._description = value;
     }
 
     get description(): string | undefined {
@@ -83,8 +83,8 @@ abstract class TaskBase implements ITaskBase {
     @inferToDate
     @isCorrectDate
     @isAfter('createdAt')
-    set deadline(value: unknown) {
-        this._deadline = value as Date;
+    set deadline(value) {
+        this._deadline = value;
     }
 
     get deadline(): Date | undefined {
@@ -96,8 +96,8 @@ abstract class TaskBase implements ITaskBase {
     @isCorrectDate
     @isInPast
     @isAfter('createdAt')
-    set doneAt(value: unknown) {
-        this._doneAt = value as Date;
+    set doneAt(value) {
+        this._doneAt = value;
         if (!value && this.status === Status.DONE) {
             this.status = Status.IN_PROGRESS;
         }
@@ -108,27 +108,38 @@ abstract class TaskBase implements ITaskBase {
     }
 
     constructor(
-        {id, title, deadline, doneAt, description, status, createdAt, priority}: CreateTaskPayload,
+        {id, title, deadline, doneAt, description, status, createdAt, priority}: {
+            id: string;
+            title: string;
+            description?: string;
+            status?: string;
+            priority?: string;
+            createdAt?: Date | string;
+            deadline?: Date | string;
+            doneAt?: Date | string;
+        },
     ) {
         this.id = id;
         this.title = title;
-        this.createdAt = createdAt || new Date();
-        this.status = status || Status.TODO;
-        this.priority = priority || Priority.MEDIUM;
         this.description = description;
-        this.deadline = deadline;
-        this.doneAt = doneAt;
+        if (status) {
+            this.status = status as Status;
+        }
+        if (priority) {
+            this.priority = priority as Priority;
+        }
+        if (createdAt) {
+            this.createdAt = createdAt as Date;
+        }
+        if (deadline) {
+            this.deadline = deadline as Date;
+        }
+        if (doneAt) {
+            this.doneAt = doneAt as Date;
+        }
     }
 
-    displayInfo(): void {
-        TaskBase.formatText(this.id, 'id');
-        TaskBase.formatText(this.title, 'title');
-        TaskBase.formatText(this.description, 'description');
-        TaskBase.formatEnum(this.status, 'status');
-        TaskBase.formatEnum(this.priority, 'priority');
-        TaskBase.formatDate(this.createdAt, 'created at');
-        TaskBase.formatDate(this.deadline, 'deadline');
-    }
+    abstract getTaskInfo(): void;
 
 
     get JSON(): TaskBaseSerialised {
@@ -161,7 +172,7 @@ abstract class TaskBase implements ITaskBase {
     updateDetails(updates: UpdateTaskPayload): void {
         Object.entries(updates).forEach(([_key, value]) => {
             const key = _key as keyof UpdateTaskPayload;
-            this[key] = value;
+            (this as Record<keyof UpdateTaskPayload, unknown>)[key]  = value;
         });
     }
 
@@ -192,73 +203,26 @@ abstract class TaskBase implements ITaskBase {
         console.log(`${displayedKey}${tabulations}${value}`);
     }
 
-    private static formatDate(value: Date | string | undefined, key: string) {
+    protected static formatDate(value: Date | string | undefined, key: string) {
         if (!value) return '';
         const str = new Date(value).toLocaleDateString();
         this.display(str, key);
     }
 
-    private static formatText(value: string | number | undefined, key: string) {
+    protected static formatText(value: string | number | undefined, key: string) {
         if (value === undefined) return '';
         this.display(String(value), key);
     }
 
-    private static formatEnum(value: Status | Priority | undefined, key: string) {
+    protected static formatEnum(value: Status | Priority | undefined, key: string) {
         if (value === undefined) return '';
         const str = value.charAt(0).toUpperCase() + value.substring(1).replace('_', ' ').toLowerCase()
         this.display(str, key);
     }
-}
 
-
-abstract class TaskBaseWithChildren extends TaskBase implements ITaskBase, WithChildren {
-    children: string[];
-
-    constructor(
-        {children, ...payload}: CreateTaskPayload & Partial<WithChildren>,
-    ) {
-        super(payload);
-        this.children = children || [];
+    protected static formatArray(values: string[] | undefined, key: string) {
+        if (!values || values.length === 0) return '';
+        const str = values.join(', ');
+        this.display(str, key);
     }
-
-    addChild(childId: string): void {
-        this.children.push(childId);
-    }
-
-    removeChild(childId: string): void {
-        this.children = this.children.filter(c => c !== childId);
-    }
-
-    _isCompatible(input: unknown): input is (CreateTaskPayload & Partial<WithChildren>) {
-        if (!this._isIterableObject(input)) return false;
-        return  input.children === undefined || Array.isArray(input.children) && super._isCompatible(input);
-    }
-
-    get JSON(): TaskBaseSerialised & WithChildren {
-        const withoutChildren = super.JSON;
-        return {
-            ...withoutChildren,
-            children: this.children,
-        };
-    }
-}
-
-export class Epic extends TaskBaseWithChildren {
-    type = WorkItemType.EPIC;
-}
-
-export class Story extends TaskBaseWithChildren {
-    type = WorkItemType.STORY;
-}
-
-export class Task extends TaskBaseWithChildren {
-    type = WorkItemType.TASK;
-}
-
-export class Subtask extends TaskBase {
-    type = WorkItemType.SUBTASK;
-}
-
-export class Bug extends TaskBase {
-    type = WorkItemType.BUG;
 }

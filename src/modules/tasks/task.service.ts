@@ -1,7 +1,11 @@
 import 'reflect-metadata';
 import {WorkItemType} from "./task.constants";
 import type {CreateTaskPayload, ITaskService, UpdateTaskPayload, WorkItem} from "./task.types";
-import {Bug, Epic, Story, Subtask, Task} from "./task.models";
+import {Epic} from "./models/Epic.model";
+import {Story} from "./models/Story.model";
+import {Task} from "./models/Task.model";
+import {Subtask} from "./models/Subtask.model";
+import {Bug} from "./models/Bug.model";
 
 export class TaskService implements ITaskService {
     private _tasks: WorkItem[] = [];
@@ -42,7 +46,6 @@ export class TaskService implements ITaskService {
     }
 
     // Update
-
     updateTask(id: string, updates: UpdateTaskPayload): void {
         const task = this.getTask(id);
         if (!task) {

@@ -284,7 +284,7 @@ controller.printErrors();
 console.log('=============================');
 console.log('All tasks after adding correct cases:');
 controller.getAllTasks().forEach(task => {
-    task.displayInfo();
+    task.getTaskInfo();
     console.log('-----------------------------');
 
 });

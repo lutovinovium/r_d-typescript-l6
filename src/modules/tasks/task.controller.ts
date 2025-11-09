@@ -21,7 +21,9 @@ export class TaskController {
         try {
             return this._service.getTask(id);
         } catch (error) {
-            this._errors.push({ error: error as Error});
+            if (error instanceof Error) {
+                this._errors.push({ error: error});
+            }
         }
     }
 
